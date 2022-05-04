@@ -20,7 +20,6 @@ class cLocation:
         self.has_value = True
         self.value = val
         self.possibles.clear()
-        self.possibles.append(val)
 
     #eliminates a possible, and may set value
     def Eliminate(self, poss):
@@ -96,7 +95,7 @@ class cSoduMap:
 
     def BoxNumber(self, gridIndex):
         # returns integer in range 0 to 8, 0 = top, left; 8 = bottom right
-        return (self.ColumnNumber(gridIndex) % 3) + ((self.RowNumber(gridIndex) % 3)*3)
+        return (self.ColumnNumber(gridIndex) // 3) + ((self.RowNumber(gridIndex) // 3)*3)
 
     ########################################################################################
 
