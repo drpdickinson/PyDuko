@@ -69,7 +69,17 @@ class cSoduMap:
         #Create peer lists for each location
         for x in range(81):
             rowNo = self.RowNumber(x)
-            #self.grid[x].peers
+            for row in self.rows[rowNo]:
+                if row != x:
+                    self.grid[x].peers.append(row)
+            colNo = self.ColumnNumber(x)
+            for col in self.cols[colNo]:
+                if (col!=x) and (col not in self.grid[x].peers):
+                    self.grid[x].peers.append(col)
+            boxNo = self.BoxNumber(x)
+            for box in self.boxes[boxNo]:
+                if (box!=x) and (box not in self.grid[x].peers):
+                    self.grid[x].peers.append(box)
 
 
         print('Map data initialised')
@@ -84,7 +94,7 @@ class cSoduMap:
         # returns integer in range 0 to 8
         return gridIndex % 9
 
-    def boxNumber(self, gridIndex):
+    def BoxNumber(self, gridIndex):
         # returns integer in range 0 to 8, 0 = top, left; 8 = bottom right
         return (self.ColumnNumber(gridIndex) % 3) + ((self.RowNumber(gridIndex) % 3)*3)
 
