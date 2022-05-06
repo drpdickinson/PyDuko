@@ -16,7 +16,7 @@ class cLocation:
         self.peers = []
 
     #initial set is used to initialise the map
-    def InitialSet(self, val):
+    def Set(self, val):
         self.has_value = True
         self.value = val
         self.possibles.clear()
@@ -24,10 +24,12 @@ class cLocation:
     #eliminates a possible, and may set value
     def Eliminate(self, poss):
         if(self.has_value): return False #already set
-        self.possibles.remove(poss) #remove the specified value
-        if(len(self.possibles)>1): return False #more than 1 still left
-        self.value=possibles[0] #setting value
-        self.has_value = True
+        if poss in self.possibles:
+            self.possibles.remove(poss) #remove the specified value
+        #if(len(self.possibles)>1): return False #more than 1 still left
+        #self.value=possibles[0] #setting value
+        #self.has_value = True
+        #self.possibles.clear()
         return True #has set self
 
 ##########################################################
@@ -36,10 +38,11 @@ class cLocation:
 class cSoduMap:
     def __init__(self):
         ##class variables
-        self.grid = []
-        self.rows = []
-        self.cols = []
-        self.boxes = []
+        self.grid = [] #list of elements 0-80 (0,0 = top left)
+        self.rows = [] #list of lists of elements in each row (0=top)
+        self.cols = [] #list of lists of elements in each column (0 = left)
+        self.boxes = [] #list of lists of elements in each box (0 = top left)
+        self.setList = [] #list of elements that have been set to specific values - used for elimination in units
 
         #set up the main grid = 0-81 locations
         for x in range(81):
@@ -79,7 +82,6 @@ class cSoduMap:
             for box in self.boxes[boxNo]:
                 if (box!=x) and (box not in self.grid[x].peers):
                     self.grid[x].peers.append(box)
-
 
         print('Map data initialised')
 
@@ -122,16 +124,35 @@ class cSoduMap:
             print('Data incomplete')
             return False
 
+        self.setList.clear()
         for i in range(81):
             val = int(initset[i])
             if ( val > 0 and val<10):
-                self.grid[i].InitialSet(val)
+                self.grid[i].Set(val)
+                self.setList.append(i)
             elif val != 0:
                 print('Data invalid at element '+str(val))
                 return false
 
         sudofile.close()
+
+        # process eliminations in units resulting from initial values
+        self.EliminationsFromSetList()etList()
+
         return True
+
+    def EliminationsFromSetList(self):
+        #set list is a list of grid locations that have been set to definitive values
+        #for each location, eliminate that value from other locations in same unit (row, column, box)
+        for setLoc in self.setList:
+            setVal = self.grid[setLoc].value
+            #print(f"Set Value {setVal} at {setLoc} \n")
+            for otherLoc in self.grid[setLoc].peers:
+                self.grid[otherLoc].Eliminate(setVal)
+                #print(f'{otherLoc} ', end = ',')
+            print('\n')
+        #all eliminations should have been done
+        self.setList.clear()
 
     def Draw(self):
         inx = 0
@@ -147,20 +168,28 @@ class cSoduMap:
                 print('|', end='')
             print('')
             if x % 3 == 2:
-                print('|   |   |   |')
+                print('|---|---|---|')
 
     def Save(self):
         print('to do')
 
     def SolveDeductive(self):
-        print('to do')
-        #
+        #1. iterate through all grid locations and check if any only have 1 possible left - set these
+        #2. iterate through all units and check if there are any values which only occur once in each list of possible for unsolved locations - set these
+        #3. Process eliminations from set cells
+        self.setList.clear()
+        #1
+        for inx in range(80):
+            if (self.grid[inx].has_value == False) and (len(self.grid[inx].possibles)==1):
+                self.grid[inx].Set(self.grid[inx].possibles[0])
+                self.setList.append(inx)
+
+        #3
+        EliminationsFromSetList()
 
 
 
-
-
-    def SolveBacktrack(self):
-        print('to do')
+#    def SolveBacktrack(self):
+#        print('to do')
 
 
