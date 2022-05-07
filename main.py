@@ -10,5 +10,7 @@ if __name__ == '__main__':
     mymap = sodumap.cSoduMap()
     mymap.Load()
     mymap.Draw()
+    mymap.SolveDeductive()
+    mymap.Draw()
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
