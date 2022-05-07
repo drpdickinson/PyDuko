@@ -15,21 +15,23 @@ class cLocation:
         self.possibles = [1,2,3,4,5,6,7,8,9]
         self.peers = []
 
+    def ReInit(self):
+        #reinitialise grid location
+        self.has_value = False  # true when value known
+        self.value = 0
+        self.possibles = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
     #initial set is used to initialise the map
     def Set(self, val):
         self.has_value = True
         self.value = val
         self.possibles.clear()
 
-    #eliminates a possible, and may set value
+    #eliminates a possible value
     def Eliminate(self, poss):
         if(self.has_value): return False #already set
         if poss in self.possibles:
             self.possibles.remove(poss) #remove the specified value
-        #if(len(self.possibles)>1): return False #more than 1 still left
-        #self.value=possibles[0] #setting value
-        #self.has_value = True
-        #self.possibles.clear()
         return True #has set self
 
 ##########################################################
@@ -43,7 +45,6 @@ class cSoduMap:
         self.cols = [] #list of lists of elements in each column (0 = left)
         self.boxes = [] #list of lists of elements in each box (0 = top left)
         self.allunits = []
-        self.setList = [] #list of elements that have been set to specific values - used for elimination in units
         self.solution = []
 
         #set up the main grid = 0-81 locations
@@ -71,15 +72,6 @@ class cSoduMap:
 
         #create list of all units = 27 lists of grid indices, one for each row/col/box
         self.allunits = self.rows + self.cols + self.boxes
-
-        '''print(f'{id(self.rows[0])}, {id(self.allunits[0])}')
-        print(f'{id(self.cols[0])}, {id(self.allunits[9])}')
-        print(f'{id(self.cols[8])}, {id(self.allunits[17])}')
-        print(f'{id(self.boxes[0])}, {id(self.allunits[18])}')
-        print(f'{id(self.boxes[2])}, {id(self.allunits[20])}')
-        print(f'{self.rows[0][5]}, {self.allunits[0][5]}')
-        print(f'{self.cols[0][1]}, {self.allunits[9][1]}')
-        print(f'{self.boxes[0][2]}, {self.allunits[18][2]}')'''
 
         #Create peer lists for each location
         for x in range(81):
@@ -120,7 +112,6 @@ class cSoduMap:
             print("File failed doesn't exist")
             return False
 
-        #print(str(os.path.getsize(p)))
         try:
             sudofile = open(p)
         except:
@@ -137,12 +128,14 @@ class cSoduMap:
             print('Data incomplete')
             return False
 
-        self.setList.clear()
+        #re initialise grid before loading
+        for i in range(81):
+            self.grid[i].ReInit()
         for i in range(81):
             val = int(initset[i])
             if ( val > 0 and val<10):
                 self.grid[i].Set(val)
-                self.setList.append(i)
+                self.EliminateFromPeers(i)
             elif val != 0:
                 print('Data invalid at element '+str(i))
                 return false
@@ -166,36 +159,15 @@ class cSoduMap:
                 return false
 
         sudofile.close()
-
-        # process eliminations in units resulting from initial values
-        self.EliminationsFromSetList()
-        '''print(f'Location {0} locations {self.grid[0].possibles}')
-        print(f'Location {1} locations {self.grid[1].possibles}')
-        print(f'Location {2} locations {self.grid[2].possibles}')
-        print(f'Location {11} locations {self.grid[11].possibles}')
-        print(f'Location {20} locations {self.grid[20].possibles}')
-        print(f'Location {29} locations {self.grid[29].possibles}')
-        print(f'Location {31} locations {self.grid[31].possibles}')
-        print(f'Location {32} locations {self.grid[32].possibles}')
-        print(f'Location {33} locations {self.grid[33].possibles}')
-        print(f'Location {35} locations {self.grid[35].possibles}')
-        print(f'Location {47} locations {self.grid[47].possibles}')
-        print(f'Location {65} locations {self.grid[65].possibles}')'''
-
         return True
 
-    def EliminationsFromSetList(self):
-        #set list is a list of grid locations that have been set to definitive values
-        #for each location, eliminate that value from other locations in same unit (row, column, box)
-        for setLoc in self.setList:
-            setVal = self.grid[setLoc].value
-            #print(f"Set Value {setVal} at {setLoc} \n")
-            for otherLoc in self.grid[setLoc].peers:
-                self.grid[otherLoc].Eliminate(setVal)
-                #print(f'{otherLoc} ', end = ',')
-            #print('\n')
-        #all eliminations should have been done
-        self.setList.clear()
+
+    def EliminateFromPeers(self, locInx):
+        # When a value has been set for a location, this function can be called to eliminate
+        #that value from 'possibles' in the location's peers
+        setVal = self.grid[locInx].value
+        for peerLoc in self.grid[locInx].peers:
+            self.grid[peerLoc].Eliminate(setVal)
 
     def Draw(self):
         inx = 0
@@ -218,15 +190,12 @@ class cSoduMap:
 
     def SolveDeductive(self):
         #1. iterate through all grid locations and check if any only have 1 possible left - set these
-        #2. Process eliminations from set cells
-        #3. iterate through all units and check if there are any values which only occur once in each list of possible for unsolved locations - set these
-        #4. Process eliminations from set cells
-        #5. Repeat until solved, or not
-
-        self.setList.clear()
+        #2. iterate through all units and check if there are any values which only occur once in each list of possible for unsolved locations - set these
+        #3. Repeat until solved, or not
 
         done = False
         while(not done):
+            numSetIter = 0
             #1
             for inx in range(80):
                 if (self.grid[inx].has_value == False) and (len(self.grid[inx].possibles)==1):
@@ -236,12 +205,10 @@ class cSoduMap:
                         print('Error in solution #1')
                     #end check
                     self.grid[inx].Set(self.grid[inx].possibles[0])
-                    self.setList.append(inx)
-            #2 do eliminations before phase 2, else possible lists for other locations are not up to date
-            numSetIter = len(self.setList)
-            if numSetIter > 0:
-                self.EliminationsFromSetList()
-            #3
+                    self.EliminateFromPeers(inx)
+                    numSetIter+=1
+
+            #2
             for unitInx, unit in enumerate(self.allunits):
                 for value in range(1,10):
                     foundCount = 0
@@ -251,18 +218,16 @@ class cSoduMap:
                             foundCount+=1
                             foundLoc = unitElem
                     if foundCount == 1:
+                        #check against set values in unit
                         # sanity check against solution
                         if value != self.solution[foundLoc]:
                             print('Error in solution #2')
                         #end check
                         self.grid[foundLoc].Set(value)
-                        self.setList.append(foundLoc)
+                        self.EliminateFromPeers(inx)
+                        numSetIter += 1
                         print(f'found solo possibility, value {value} in location {foundLoc} using unit {unitInx}')
-            #4
-            numSetIter += len(self.setList)
-            if(len(self.setList)) > 0:
-                self.EliminationsFromSetList()
-            #5
+            #3
             if numSetIter > 0:
                 done = True
                 print('terminating: no items set this iteration')
