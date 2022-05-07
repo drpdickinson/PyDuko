@@ -46,6 +46,7 @@ class cSoduMap:
         self.boxes = [] #list of lists of elements in each box (0 = top left)
         self.allunits = []
         self.solution = []
+        self.loadSolution = True
 
         #set up the main grid = 0-81 locations
         for x in range(81):
@@ -106,8 +107,8 @@ class cSoduMap:
 
     ########################################################################################
 
-    def Load(self):
-        p = Path('sodukotext.txt')
+    def Load(self, fname, offset):
+        p = Path(fname)
         if not p.is_file():
             print("File failed doesn't exist")
             return False
@@ -118,8 +119,14 @@ class cSoduMap:
             print('Open file failed')
             return False
 
+        #read header + preceeding puzzles
         try:
+            lines = 2 + (offset*3)
+            for x in range(lines):
+                initset = sudofile.readline()
+            #next line is puzzle
             initset = sudofile.readline()
+
         except:
             print('Could not read file')
             return False
@@ -141,22 +148,22 @@ class cSoduMap:
                 return false
 
         #load solution
-        try:
-            soln = sudofile.readline()
-            soln = sudofile.readline()
-        except:
-            print('Could not read file')
-            return False
-        if len(soln)<81:
-            print('Soln incomplete')
-            return False
-        for i in range(81):
-            val = int(soln[i])
-            if (val > 0 and val < 10):
-                self.solution.append(val)
-            else :
-                print('Solution invalid at element ' + str(i))
-                return false
+        if self.loadSolution == True:
+            try:
+                soln = sudofile.readline()
+            except:
+                print('Could not read file')
+                return False
+            if len(soln)<81:
+                print('Soln incomplete')
+                return False
+            for i in range(81):
+                val = int(soln[i])
+                if (val > 0 and val < 10):
+                    self.solution.append(val)
+                else :
+                    print('Solution invalid at element ' + str(i))
+                    return false
 
         sudofile.close()
         return True
@@ -188,7 +195,7 @@ class cSoduMap:
     def Save(self):
         print('to do')
 
-    def SolveDeductive(self):
+    def SolveUsingConstrints(self):
         #1. iterate through all grid locations and check if any only have 1 possible left - set these
         #2. iterate through all units and check if there are any values which only occur once in each list of possible for unsolved locations - set these
         #3. Repeat until solved, or not
@@ -201,8 +208,9 @@ class cSoduMap:
                 if (self.grid[inx].has_value == False) and (len(self.grid[inx].possibles)==1):
                     print(f'Location {inx} has only one possible value, {self.grid[inx].possibles[0]}')
                     # sanity check against solution
-                    if self.grid[inx].possibles[0] != self.solution[inx]:
-                        print('Error in solution #1')
+                    if self.loadSolution == True:
+                        if self.grid[inx].possibles[0] != self.solution[inx]:
+                            print('Error in solution #1')
                     #end check
                     self.grid[inx].Set(self.grid[inx].possibles[0])
                     self.EliminateFromPeers(inx)
@@ -220,8 +228,9 @@ class cSoduMap:
                     if foundCount == 1:
                         #check against set values in unit
                         # sanity check against solution
-                        if value != self.solution[foundLoc]:
-                            print('Error in solution #2')
+                        if self.loadSolution == True:
+                            if value != self.solution[foundLoc]:
+                                print('Error in solution #2')
                         #end check
                         self.grid[foundLoc].Set(value)
                         self.EliminateFromPeers(inx)
@@ -239,7 +248,21 @@ class cSoduMap:
                 numSet+=1
         print(f'Number of locations set {numSet}')
 
-#    def SolveBacktrack(self):
-#        print('to do')
+    def ValidityCheck(self):
+        #iterate through each unit
+        #should be exactly 1 of each digit only
+        print('Validity check started')
+        for unitInx, unit in enumerate(self.allunits):
+            for val in range(1, 10):
+                foundCount = 0
+                for unitElem in unit:
+                    if not self.grid[unitElem].has_value:
+                        print(f"ERROR in solution, location {unitElem} not set")
+                    if self.grid[unitElem].value == val:
+                        foundCount += 1
+                if foundCount != 1:
+                    print(f"ERROR in solution, unit {unitInx} has {foundCount} occurences of {val}")
+        print('Validity check completed')
+
 
 

@@ -8,9 +8,11 @@ import sodumap
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     mymap = sodumap.cSoduMap()
-    mymap.Load()
+#    mymap.Load('sodukotext.txt', 0)
+    mymap.Load('kagglepuzzles.txt', 0)
     mymap.Draw()
-    mymap.SolveDeductive()
+    mymap.SolveUsingConstrints()
+    mymap.ValidityCheck()
     mymap.Draw()
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
