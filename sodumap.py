@@ -233,14 +233,14 @@ class cSoduMap:
                                 print('Error in solution #2')
                         #end check
                         self.grid[foundLoc].Set(value)
-                        self.EliminateFromPeers(inx)
+                        self.EliminateFromPeers(foundLoc)
                         numSetIter += 1
                         print(f'found solo possibility, value {value} in location {foundLoc} using unit {unitInx}')
             #3
             if numSetIter > 0:
                 done = True
                 print('terminating: no items set this iteration')
-
+            print('Grid iteration completed: starting next')
         #end while loop
         numSet = 0;
         for x in self.grid:
